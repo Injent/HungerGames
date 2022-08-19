@@ -1,0 +1,116 @@
+options:
+  resources: 'https://drive.google.com/uc?export=download&id=1EBFq-8RMTLZlXuT4LXTcL8fmpb8uxHRL'
+  sha1: a4f2558ef26abe54a5c004158a376f3e25f2a5df
+  world_name: world
+  shrink_time: 20
+  shrink_distance: 65
+  border_size: 251
+  game: 'Голодные игры'
+  map_name: 'Urban city'
+  invurnebility: 20
+  rewards:
+    kill: 80
+    death: 20
+    open_supply: 100
+    win: 200
+files:
+  locations: '/HungerGames/locations.json'
+  messages: '/HungerGames/messages.json'
+scoreboard:
+  waiting:
+    - '§b§lИгра %gamenumber%/8: §r%game%'
+    - '§b§lКарта: §r%map%'
+    - '§c§lДо начала:'
+    - '§r%time%'
+    - ' '
+    - '§e§lТвои монеты: §r%coins%'
+    - '§a§lМонеты команды: §r%team_coins%'
+  next_shrink:
+    - '§b§lИгра %gamenumber%/8: §r%game%'
+    - '§b§lКарта: §r%map%'
+    - '§d§lСужение через:'
+    - '§r%time%'
+    - ' '
+    - '§a§lЖивых: §r%alive%'
+    - '§e§lУбийства: §r%kills%'
+  shrinking:
+    - '§b§lИгра %gamenumber%/8: §r%game%'
+    - '§b§lКарта: §r%map%'
+    - '§d§lБарьер сужается:'
+    - '§r%time%'
+    - ' '
+    - '§a§lЖивых: §r%alive%'
+    - '§e§lУбийства: §r%kills%'
+  starting:
+    - '§b§lИгра %gamenumber%/8: §r%game%'
+    - '§b§lКарта: §r%map%'
+    - '§c§lСтарт:'
+    - '§r%time%'
+    - ' '
+    - '§e§lТвои монеты: §r%coins%'
+    - '§a§lМонеты команды: §r%team_coins%'
+  playing:
+    - '§b§lИгра %gamenumber%/8: §r%game%'
+    - '§b§lКарта: §r%map%'
+    - '§d§lСледующее сужение:'
+    - '%time%'
+    - ' '
+    - '§a§lЖивых: §r%alive%'
+    - '§e§lУбийства: §r%kills%'
+  showdown:
+    - '§b§lИгра %gamenumber%/8: §r%game%'
+    - '§b§lКарта: §r%map%'
+    - '§c§lСтолкновение:'
+    - '%time%'
+    - ' '
+    - '§a§lЖивых: §r%alive%'
+    - '§e§lУбийства: §r%kills%'
+  ending:
+    - '§b§lИгра %gamenumber%/8: §r%game%'
+    - '§b§lКарта: §r%map%'
+    - '§c§lКонец игры:'
+    - '%time%'
+    - ' '
+    - '§a§lЖивых: §r%alive%'
+    - '§e§lУбийства: §r%kills%'
+lootItems:
+  0:
+    material: APPLE
+    chance: 0.3
+    min: 2
+    max: 4
+  1:
+    material: STONE_SWORD
+    enchantments:
+      FIRE_ASPECT: 1
+    chance: 0.1
+  2:
+    material: COOKED_PORKCHOP
+    chance: 0.2
+    min: 2
+    max: 4
+  3:
+    material: WOODEN_SWORD
+    chance: 0.2
+  4:
+    material: WOODEN_AXE
+    chance: 0.1
+  5:
+    material: STICK
+    chance: 0.1
+    enchantments:
+      DAMAGE_ALL: 1
+  6:
+    material: FISHING_ROD
+    chance: 0.1
+    enchantments:
+      KNOCKBACK: 1
+  7:
+    material: LEATHER_HELMET
+    chance: 0.2
+  8:
+    material: LEATHER_CHESTPLATE
+    chance: 0.2
+  9:
+    material: GOLDEN_BOOTS
+    chance: 0.2

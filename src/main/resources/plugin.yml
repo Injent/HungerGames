@@ -1,0 +1,9 @@
+name: HungerGames
+version: '${project.version}'
+main: me.injent.hungergames.HungerGames
+api-version: 1.17
+authors: [ Injent ]
+
+commands:
+  start:
+    description: none
