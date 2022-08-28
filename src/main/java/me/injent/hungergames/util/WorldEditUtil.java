@@ -12,7 +12,7 @@ import com.sk89q.worldedit.world.block.BlockState;
 import org.bukkit.Location;
 import org.bukkit.Material;
 
-public class WorldManager {
+public class WorldEditUtil {
 
     public static void fillBlocks(Location pos1, Location pos2, Material material) {
         World world = BukkitAdapter.adapt(pos1.getWorld());

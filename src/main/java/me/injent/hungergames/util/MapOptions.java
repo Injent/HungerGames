@@ -1,11 +1,14 @@
 package me.injent.hungergames.util;
 
+import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.plugin.Plugin;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class MapOptions {
 
-    private boolean loaded;
     private String resourcesLink;
     private String resourcesSha1;
     private String mapName;
@@ -14,10 +17,12 @@ public class MapOptions {
     private int shrinkTime;
     private int shrinkDistance;
     private double deathCoins;
-    private double winCoins;
+    private Double[] winCoins;
     private double openSupplyCoins;
     private double killCoins;
     private double borderSize;
+    private List<Material> allowedBlockToBreak = new ArrayList<>();
+    private List<Material> allowedBlockToPlace = new ArrayList<>();
 
     public void prepopulate(Plugin plugin) {
         ConfigurationSection section = plugin.getConfig().getConfigurationSection("options");
@@ -31,21 +36,27 @@ public class MapOptions {
         ConfigurationSection coins = section.getConfigurationSection("rewards");
         killCoins = coins.getDouble("kill");
         deathCoins = coins.getDouble("death");
-        winCoins = coins.getDouble("win");
+        winCoins = coins.getDoubleList("win").toArray(new Double[0]);
         openSupplyCoins = coins.getDouble("open_supply");
         borderSize = section.getDouble("border_size");
+        for (String stringName : section.getStringList("allowed_blocks.break")) {
+            allowedBlockToBreak.add(Material.valueOf(stringName.toUpperCase()));
+        }
+        for (String stringName : section.getStringList("allowed_blocks.place")) {
+            allowedBlockToPlace.add(Material.valueOf(stringName.toUpperCase()));
+        }
     }
 
-    public boolean isLoaded() {
-        return loaded;
+    public List<Material> getAllowedBlockToBreak() {
+        return allowedBlockToBreak;
+    }
+
+    public List<Material> getAllowedBlockToPlace() {
+        return allowedBlockToPlace;
     }
 
     public String getGame() {
         return game;
-    }
-
-    public void setLoaded(boolean loaded) {
-        this.loaded = loaded;
     }
 
     public String getResourcesLink() {
@@ -76,7 +87,7 @@ public class MapOptions {
         return deathCoins;
     }
 
-    public double getWinCoins() {
+    public Double[] getWinCoins() {
         return winCoins;
     }
 

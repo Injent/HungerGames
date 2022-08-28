@@ -8,14 +8,51 @@ options:
   game: 'Голодные игры'
   map_name: 'Urban city'
   invurnebility: 20
+  max_item_count: 5
+  min_item_count: 2
+  allowed_blocks:
+    break:
+      - glass_pane
+      - tall_grass
+      - grass
+      - large_fern
+      - dandelion
+      - poppy
+      - azure_bluet
+      - flower_pot
+      - cobweb
+      - fern
+      - oak_leaves
+      - birch_leaves
+      - jungle_leaves
+      - dark_oak_leaves
+      - spruce_leaves
+      - lily_of_the_valley
+      - fire
+    place:
+      - lava_bucket
+      - tnt
+      - cobweb
+      - fire
   rewards:
-    kill: 80
-    death: 20
-    open_supply: 100
-    win: 200
+    kill: 65
+    death: 3
+    open_supply: 180
+    win:
+      - 650
+      - 600
+      - 560
+      - 520
+      - 480
+      - 450
+      - 420
+      - 390
+      - 360
+      - 330
 files:
-  locations: '/HungerGames/locations.json'
-  messages: '/HungerGames/messages.json'
+  locations: '/locations.json'
+  messages: '/messages.json'
+  world: '/world'
 scoreboard:
   waiting:
     - '§b§lИгра %gamenumber%/8: §r%game%'
@@ -73,44 +110,367 @@ scoreboard:
     - ' '
     - '§a§lЖивых: §r%alive%'
     - '§e§lУбийства: §r%kills%'
-lootItems:
-  0:
-    material: APPLE
-    chance: 0.3
-    min: 2
+loot:
+  '0':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: APPLE
+    min: 1
     max: 4
-  1:
-    material: STONE_SWORD
-    enchantments:
-      FIRE_ASPECT: 1
-    chance: 0.1
-  2:
-    material: COOKED_PORKCHOP
-    chance: 0.2
-    min: 2
-    max: 4
-  3:
-    material: WOODEN_SWORD
-    chance: 0.2
-  4:
-    material: WOODEN_AXE
-    chance: 0.1
-  5:
-    material: STICK
-    chance: 0.1
-    enchantments:
-      DAMAGE_ALL: 1
-  6:
-    material: FISHING_ROD
-    chance: 0.1
-    enchantments:
-      KNOCKBACK: 1
-  7:
-    material: LEATHER_HELMET
-    chance: 0.2
-  8:
-    material: LEATHER_CHESTPLATE
-    chance: 0.2
-  9:
-    material: GOLDEN_BOOTS
-    chance: 0.2
+  '1':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: COOKED_PORKCHOP
+    min: 1
+    max: 3
+  '2':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: RABBIT_STEW
+  '3':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: GOLDEN_APPLE
+  '4':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: BOW
+  '5':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: ARROW
+    min: 3
+    max: 5
+  '6':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: TIPPED_ARROW
+      meta:
+        ==: ItemMeta
+        meta-type: POTION
+        potion-type: minecraft:long_slowness
+  '7':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: TIPPED_ARROW
+      meta:
+        ==: ItemMeta
+        meta-type: POTION
+        potion-type: minecraft:long_poison
+  '8':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: TIPPED_ARROW
+      meta:
+        ==: ItemMeta
+        meta-type: POTION
+        potion-type: minecraft:weakness
+  '9':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: WOODEN_SWORD
+  '10':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: STONE_SWORD
+  '11':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: IRON_SWORD
+  '12':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: WOODEN_AXE
+  '13':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: STONE_AXE
+  '14':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: IRON_AXE
+  '15':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: STONE_PICKAXE
+  '16':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: IRON_PICKAXE
+  '17':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: DIAMOND_PICKAXE
+  '18':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: SHEARS
+      meta:
+        ==: ItemMeta
+        meta-type: UNSPECIFIC
+        enchants:
+          DAMAGE_ALL: 2
+  '19':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: STICK
+      meta:
+        ==: ItemMeta
+        meta-type: UNSPECIFIC
+        enchants:
+          FIRE_ASPECT: 1
+          KNOCKBACK: 1
+          DAMAGE_ALL: 2
+  '20':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: FISHING_ROD
+      meta:
+        ==: ItemMeta
+        meta-type: UNSPECIFIC
+        enchants:
+          KNOCKBACK: 1
+  '21':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: TNT
+    min: 3
+    max: 3
+  '22':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: FIRE_CHARGE
+      amount: 10
+  '23':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: POTION
+      meta:
+        ==: ItemMeta
+        meta-type: POTION
+        potion-type: minecraft:strong_healing
+  '24':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: LINGERING_POTION
+      meta:
+        ==: ItemMeta
+        meta-type: POTION
+        potion-type: minecraft:strong_healing
+  '25':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: POTION
+      meta:
+        ==: ItemMeta
+        meta-type: POTION
+        potion-type: minecraft:swiftness
+  '26':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: POTION
+      meta:
+        ==: ItemMeta
+        meta-type: POTION
+        potion-type: minecraft:fire_resistance
+  '27':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: POTION
+      meta:
+        ==: ItemMeta
+        meta-type: POTION
+        potion-type: minecraft:invisibility
+  '28':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: POTION
+      meta:
+        ==: ItemMeta
+        meta-type: POTION
+        potion-type: minecraft:strength
+  '29':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: POTION
+      meta:
+        ==: ItemMeta
+        meta-type: POTION
+        potion-type: minecraft:regeneration
+  '30':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: SPLASH_POTION
+      meta:
+        ==: ItemMeta
+        meta-type: POTION
+        potion-type: minecraft:harming
+  '31':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: LINGERING_POTION
+      meta:
+        ==: ItemMeta
+        meta-type: POTION
+        potion-type: minecraft:harming
+  '32':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: SPLASH_POTION
+      meta:
+        ==: ItemMeta
+        meta-type: POTION
+        potion-type: minecraft:poison
+  '33':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: SPLASH_POTION
+      meta:
+        ==: ItemMeta
+        meta-type: POTION
+        potion-type: minecraft:weakness
+  '34':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: SPLASH_POTION
+      meta:
+        ==: ItemMeta
+        meta-type: POTION
+        potion-type: minecraft:slowness
+  '35':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: LEATHER_HELMET
+  '36':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: LEATHER_CHESTPLATE
+  '37':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: LEATHER_LEGGINGS
+  '38':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: LEATHER_BOOTS
+  '39':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: CHAINMAIL_HELMET
+  '40':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: CHAINMAIL_CHESTPLATE
+  '41':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: CHAINMAIL_LEGGINGS
+  '42':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: CHAINMAIL_BOOTS
+  '43':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: IRON_HELMET
+  '44':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: IRON_CHESTPLATE
+  '45':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: IRON_LEGGINGS
+  '46':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: IRON_BOOTS
+  '47':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: GOLDEN_HELMET
+  '48':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: GOLDEN_CHESTPLATE
+  '49':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: GOLDEN_LEGGINGS
+  '50':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: GOLDEN_BOOTS
+  '51':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: DIAMOND_BOOTS
+  '52':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: WOODEN_HOE
+      meta:
+        ==: ItemMeta
+        meta-type: UNSPECIFIC
+        enchants:
+          FIRE_ASPECT: 1
+  '53':
+    item:
+      ==: org.bukkit.inventory.ItemStack
+      v: 2730
+      type: COBWEB
+    min: 1
+    max: 3

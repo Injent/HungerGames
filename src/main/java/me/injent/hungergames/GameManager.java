@@ -2,26 +2,38 @@ package me.injent.hungergames;
 
 import me.injent.gamelib.GameLib;
 import me.injent.gamelib.board.Board;
+import me.injent.gamelib.data.DataUtil;
+import me.injent.gamelib.data.GameState;
 import me.injent.gamelib.player.PlayerData;
 import me.injent.gamelib.teams.SpawnLoc;
 import me.injent.gamelib.teams.Team;
 import me.injent.gamelib.util.ChatManager;
 import me.injent.gamelib.util.TimerRunnable;
 import me.injent.gamelib.util.TitleBuilder;
+import me.injent.gamelib.util.WorldManager;
 import me.injent.hungergames.util.MapOptions;
-import me.injent.hungergames.util.WorldManager;
+import me.injent.hungergames.util.WorldEditUtil;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
 import org.bukkit.*;
+import org.bukkit.block.Block;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockDropItemEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -31,14 +43,14 @@ import java.util.UUID;
 public class GameManager implements Listener {
 
     private final HungerGames plugin;
-    private final GameLib gameLib;
+    private GameLib gameLib;
 
     private World world;
+    private WorldManager level;
     private WorldBorder worldBorder;
     private BossBar bossBar;
     private MapOptions options = new MapOptions();
 
-    private GameState gameState;
     private List<SpawnLoc> markers;
     private List<UUID> alive = new ArrayList<>();
     private List<UUID> players = new ArrayList<>();
@@ -48,62 +60,63 @@ public class GameManager implements Listener {
     public GameManager(HungerGames plugin) {
         this.plugin = plugin;
         gameLib = plugin.getGameLib();
+        board = gameLib.getBoard();
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            board.update(player);
+        }
 
         // Loading data
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
                 markers = gameLib.getDataService().getLocations(plugin);
                 options.prepopulate(plugin);
-                gameState = GameState.WAITING;
-                world = Bukkit.getWorld(options.getWorldName());
-                worldBorder = world.getWorldBorder();
                 bossBar = BossBar.bossBar(Component.text(""), 0.0f, BossBar.Color.WHITE, BossBar.Overlay.PROGRESS);
-                board = gameLib.getMainBoard();
+                gameLib.getOptions().setGameState(GameState.STARTING);
                 board.setPlaceHolder("game", options.getGame());
                 board.setPlaceHolder("map", options.getMapName());
-                options.setLoaded(true);
+                Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, this::init);
             } catch (IOException e) {
                 e.printStackTrace();
             }
         });
     }
 
-    public void waitingForStart() {
+    public void init() {
         // Checking conditions
-        if (!options.isLoaded()) {
-            plugin.getLogger().info("Game is loading!");
-            return;
-        }
-        if (gameState == GameState.WAITING)
-            gameState = GameState.PLAYING;
-        else
-            return;
 
         List<String> lines = plugin.getConfig().getStringList("scoreboard.waiting");
         lines.set(3, "Ожидание...");
         board.setLines(lines);
 
-        starting();
+        level = new WorldManager(plugin.getDataFolder(), plugin.getConfig().getString("files.world", "world"), () -> {
+            world = level.getWorld();
+            worldBorder = world.getWorldBorder();
+            starting();
+        });
     }
 
     private void starting() {
         // Teleporting player to their markers
         for (SpawnLoc spawnLoc : markers) {
-            Team team = gameLib.getTeams().get(spawnLoc.getTeamId());
+            Team team = DataUtil.getTeam(spawnLoc.getTeamId());
             if (team != null) {
                 team.getBukkitPlayers().forEach(player -> player.teleport(spawnLoc.toLocation(world)));
             }
         }
 
         // Preparing for game
-        for (UUID uuid : gameLib.getPlayersData().keySet()) {
-            if (Bukkit.getPlayer(uuid) != null)
+        for (UUID uuid : DataUtil.getPlayersData().keySet()) {
+            Player player = Bukkit.getPlayer(uuid);
+            if (player != null) {
+                PlayerData.setDefault(player);
+                player.setInvulnerable(true);
                 players.add(uuid);
+                DataUtil.setLocalGameCoins(uuid, 0);
+            }
         }
         alive = new ArrayList<>(players);
 
         // Runt countdown timer
-        gameState = GameState.STARTING;
         worldBorder.setSize(options.getBorderSize());
 
         board.setLines(plugin.getConfig().getStringList("scoreboard.starting"));
@@ -118,27 +131,22 @@ public class GameManager implements Listener {
             String time = ChatManager.formatTimer(s, m);
             board.setLine(3, time);
 
-            if (s <= 5 && s != 0) {
-                Bukkit.getServer().playSound(Sound.sound(org.bukkit.Sound.BLOCK_NOTE_BLOCK_COW_BELL, Sound.Source.MASTER, 1, 3.5f));
+            if (s <= 3 && s != 0) {
+                Bukkit.getServer().playSound(Sound.sound(Key.key("countdown"), Sound.Source.MASTER, 1, 1f));
             }
         }));
     }
 
     private void start() {
-        plugin.getLogger().info("Game started!");
+        Bukkit.getServer().playSound(Sound.sound(Key.key("start"), Sound.Source.MASTER, 1f, 1f));
+
         // Remove barriers
         for (SpawnLoc spawnLoc : markers) {
             Location loc = spawnLoc.toLocation(world);
-            WorldManager.fillBlocks(loc.clone().add(-2.0,0.0,-2.0), loc.clone().add(2.0,3.0,2.0), Material.AIR);
+            WorldEditUtil.fillBlocks(loc.clone().add(-2.0,0.0,-2.0), loc.clone().add(2.0,3.0,2.0), Material.AIR);
         }
 
-        // Player set data
-        for (UUID uuid : players) {
-            Player player = Bukkit.getPlayer(uuid);
-            PlayerData.setDefault(player);
-        }
-
-        for (Team team : gameLib.getTeams().values()) {
+        for (Team team : DataUtil.getTeams().values()) {
             team.setAllAlive();
         }
 
@@ -152,6 +160,7 @@ public class GameManager implements Listener {
         // Update scoreboard
         board.setPlaceHolder("alive", alive.size() + "/" + players.size());
         board.setLines(plugin.getConfig().getStringList("scoreboard.playing"));
+        gameLib.getOptions().setGameState(GameState.PLAYING);
         playing();
     }
 
@@ -159,7 +168,7 @@ public class GameManager implements Listener {
         Bukkit.getServer().showBossBar(bossBar);
         Bukkit.getScheduler().runTask(plugin, new TimerRunnable(plugin, 20, 0, () -> {
             bossBar.name(Component.translatable("bossbar.invulnerability_gone"));
-            Bukkit.getServer().playSound(Sound.sound(Key.key("block.respawn_anchor.deplete"), Sound.Source.MASTER, 1f, 1f));
+            Bukkit.getServer().playSound(Sound.sound(Key.key("invulnerability"), Sound.Source.MASTER, 1f, 1f));
             for (UUID uuid : players) {
                 Player player = Bukkit.getPlayer(uuid);
                 player.setInvulnerable(false);
@@ -197,7 +206,7 @@ public class GameManager implements Listener {
                             .fade(5, 50, 5)
                             .build()
             );
-            Bukkit.getServer().playSound(Sound.sound(Key.key("block.respawn_anchor.charge"), Sound.Source.MASTER, 1f, 1f));
+            Bukkit.getServer().playSound(Sound.sound(Key.key("shrinking"), Sound.Source.MASTER, 1f, 1f));
             board.setLines(plugin.getConfig().getStringList("scoreboard.shrinking"));
             worldBorder.setSize(worldBorder.getSize() - options.getShrinkDistance(), options.getShrinkTime());
             Bukkit.getScheduler().runTask(plugin, shrinkingTime);
@@ -221,17 +230,20 @@ public class GameManager implements Listener {
     }
 
     private void ending() {
-        gameState = GameState.ENDING;
+        gameLib.getOptions().setGameState(GameState.ENDING);
         for (UUID uuid : alive) {
             Player player = Bukkit.getPlayer(uuid);
-            player.setGameMode(GameMode.SPECTATOR);
-            PlayerData playerData = gameLib.getPlayersData().get(uuid);
-            player.sendMessage(Component.translatable("tellraw.win").args(Component.text(options.getWinCoins())));
-            playerData.addLocalCoins(options.getWinCoins());
+            double winCoins = options.getWinCoins()[0] / alive.size();
+            PlayerData playerData = DataUtil.getPlayerData(uuid);
+            playerData.addLocalCoins(winCoins);
+            player.sendMessage(Component.translatable("tellraw.win").args(Component.text(winCoins)));
+
+            PlayerData.setSpectator(player);
+            player.playSound(Sound.sound(Key.key("win"), Sound.Source.MASTER, 1f, 1f));
         }
         Bukkit.getScheduler().cancelTasks(plugin);
         board.setLines(plugin.getConfig().getStringList("scoreboard.ending"));
-        ChatManager.showRoundLeaderboard(new ArrayList<>(gameLib.getTeams().values()), players);
+        ChatManager.showRoundLeaderboard(new ArrayList<>(DataUtil.getTeams().values()), players);
         Bukkit.getScheduler().runTask(plugin, new TimerRunnable(plugin, 0, 1, this::end, (s, m) -> {
             String time = ChatManager.formatTimer(s, m);
             board.setLine(3, time);
@@ -240,43 +252,47 @@ public class GameManager implements Listener {
 
     private void checkWinners() {
         int aliveTeams = 0;
-        for (Team team : gameLib.getTeams().values()) {
+        for (Team team : DataUtil.getTeams().values()) {
             if (team.isAlive())
                 aliveTeams++;
         }
-        if (aliveTeams == 1) {
+        if (aliveTeams <= 1) {
             ending();
-        } else if (aliveTeams == 0) {
-            plugin.getLogger().severe("STOPPING THE SERVER!");
         }
-    }
-
-    enum GameState {
-        WAITING,
-        STARTING,
-        PLAYING,
-        ENDING,
-        END
     }
 
     private void end() {
-        gameState = GameState.END;
+        gameLib.getOptions().setGameState(GameState.END);
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            player.teleport(Bukkit.getWorld("world").getSpawnLocation());
+            PlayerData.setDefault(player);
+        }
+        level.unload();
+        markers = null;
+        players = null;
+        alive = null;
+        world = null;
+        worldBorder = null;
+        options = null;
+        bossBar = null;
+        gameLib.getServer().getPluginManager().disablePlugin(plugin);
     }
 
     @EventHandler
-    public void onJoin(PlayerJoinEvent e) {
+    private void onJoin(PlayerJoinEvent e) {
         Player player = e.getPlayer();
         board.update(player);
-        if (gameState == GameState.PLAYING) {
-            player.setGameMode(GameMode.SPECTATOR);
+        GameState gameState = gameLib.getOptions().getGameState();
+        if (gameState == GameState.PLAYING || gameState == GameState.STARTING || gameState == GameState.ENDING) {
+            PlayerData.setSpectator(player);
+            player.teleport(world.getSpawnLocation());
         }
     }
 
     @EventHandler
-    public void onQuit(PlayerQuitEvent e) {
+    private void onQuit(PlayerQuitEvent e) {
         Player player = e.getPlayer();
-        PlayerData playerData = gameLib.getPlayersData().get(player.getUniqueId());
-        playerData.getTeam().getAliveUUID().remove(player.getUniqueId());
+        DataUtil.getPlayerData(player).getTeam().getAliveUUID().remove(player.getUniqueId());
         players.remove(player.getUniqueId());
         alive.remove(player.getUniqueId());
         board.removeBoard(player);
@@ -284,35 +300,119 @@ public class GameManager implements Listener {
     }
 
     @EventHandler
-    public void onPlayerDeath(EntityDeathEvent e) {
-        if (!(e.getEntity() instanceof Player dead)) return;
-        PlayerData playerData = gameLib.getPlayersData().get(dead.getUniqueId());
-        playerData.setPlace(alive.size());
+    private void onBlockDropItem(BlockDropItemEvent e) {
+        e.setCancelled(true);
+    }
+
+    @EventHandler
+    private void onInventoryClick(InventoryClickEvent e) {
+        Player player = (Player) e.getWhoClicked();
+        if (player.getGameMode() == GameMode.ADVENTURE)
+            e.setCancelled(true);
+    }
+
+    @EventHandler
+    private void onPlayerDeath(PlayerDeathEvent e) {
+        Player killer = e.getEntity().getKiller();
+        Player dead = e.getPlayer();
+        PlayerData deadData = DataUtil.getPlayerData(dead);
+        Team deadTeam = deadData.getTeam();
+        int aliveTeams = (int) DataUtil.getTeams().values().stream().filter(Team::isAlive).count();
+        deadData.setPlace(alive.size());
         alive.remove(dead.getUniqueId());
-        playerData.getTeam().getAliveUUID().remove(dead.getUniqueId());
+        deadTeam.getAliveUUID().remove(dead.getUniqueId());
+        if (!deadData.getTeam().isAlive()) {
+            Bukkit.getServer().sendMessage(Component.translatable("tellraw.team_eliminated").args(Component.text(deadTeam.getFormattedName())));
+            double winCoins = options.getWinCoins()[aliveTeams - 1] / deadTeam.getBukkitPlayers().size();
+            deadTeam.getBukkitPlayers().forEach(player -> {
+                PlayerData playerData = DataUtil.getPlayerData(player);
+                playerData.addLocalCoins(winCoins);
+                player.sendMessage(Component.translatable("tellraw.win").args(Component.text(winCoins), Component.text(aliveTeams)));
+            });
+        }
 
         e.setCancelled(true);
-        dead.setGameMode(GameMode.SPECTATOR);
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            dead.spigot().respawn();
+            PlayerData.setSpectator(dead);
+        }, 20);
 
+        dead.sendMessage(e.deathMessage());
+        dead.playSound(Sound.sound(Key.key("death"), Sound.Source.MASTER, 1f, 1f));
+        dead.showTitle(
+                new TitleBuilder()
+                    .title(Component.translatable("title.title.dead"))
+                    .fade(0, 60, 0)
+                    .build()
+        );
+
+        Component deathMsg = Component.translatable("tellraw.death").args(Component.text(options.getDeathCoins())).append(e.deathMessage());
+        Sound deathSoundGlobal = Sound.sound(Key.key("coins.bonus"), Sound.Source.MASTER, 1f, 1f);
         alive.forEach(uuid -> {
             Player player = Bukkit.getPlayer(uuid);
             if (player == null) return;
-            player.sendMessage(Component.translatable("tellraw.death").args(Component.text(options.getDeathCoins()), player.displayName()));
-            player.playSound(Sound.sound(Key.key("block.chain.place"), Sound.Source.MASTER, 1f, 1.5f));
-            PlayerData pData = gameLib.getPlayersData().get(player.getUniqueId());
-            pData.addCoins(options.getDeathCoins());
+            if (killer != null && player.getUniqueId().equals(killer.getUniqueId())) return;
+            player.sendMessage(deathMsg);
+            player.playSound(deathSoundGlobal);
+            PlayerData pData = DataUtil.getPlayerData(player);
+            pData.addLocalCoins(options.getDeathCoins());
+            DataUtil.addPlayerData(uuid, pData);
         });
 
         board.setPlaceHolder("alive", alive.size() + "/" + players.size());
         board.updateAll();
         checkWinners();
 
-        Player killer = e.getEntity().getKiller();
         if (killer == null) return;
-        PlayerData killerData = gameLib.getPlayersData().get(killer.getUniqueId());
-        killerData.addCoins(options.getKillCoins());
-        killer.sendMessage(Component.translatable("tellraw.kill").args(Component.text(options.getKillCoins()), dead.displayName()));
-        killer.playSound(Sound.sound(Key.key("block.chain.place"), Sound.Source.MASTER, 1f, 1.5f));
+        PlayerData killerData = DataUtil.getPlayerData(killer);
+        killerData.addLocalCoins(options.getKillCoins());
+        killer.sendMessage(Component.translatable("tellraw.kill").args(Component.text(options.getKillCoins()), dead.teamDisplayName()));
+        killer.playSound(Sound.sound(Key.key("coins.receive"), Sound.Source.MASTER, 1f, 1f));
+        killer.showTitle(
+                new TitleBuilder()
+                    .subtitle(Component.translatable("title.subtitle.kill").append(dead.teamDisplayName()))
+                    .fade(0, 40, 5)
+                    .build()
+        );
         world.spawnParticle(Particle.END_ROD, killer.getLocation().add(0,1,0), 20, 0.5, 0.5, 0.5, 0.1);
+    }
+
+    @EventHandler
+    private void onBlockBreak(BlockBreakEvent e) {
+        Player player = e.getPlayer();
+        if (alive.contains(player.getUniqueId())) {
+            if (!options.getAllowedBlockToBreak().contains(e.getBlock().getType())) {
+                e.setCancelled(true);
+            }
+        } else {
+            e.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    private void onBlockPlace(BlockPlaceEvent e) {
+        Player player = e.getPlayer();
+        if (alive.contains(player.getUniqueId())) {
+            if (!options.getAllowedBlockToPlace().contains(e.getBlock().getType())) {
+                e.setCancelled(true);
+            } else {
+                Block block = e.getBlock();
+               if (block.getType() == Material.TNT) {
+                   block.setType(Material.AIR);
+                   world.spawn(block.getLocation().add(0.5, 0, 0.5), TNTPrimed.class, tntPrimed -> tntPrimed.setSource(player));
+               }
+            }
+        } else {
+            e.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    private void onTntExplode(EntityExplodeEvent e) {
+        Entity entity = e.getEntity();
+        e.setCancelled(true);
+        if (entity instanceof TNTPrimed) {
+            world.createExplosion(e.getLocation(), 1f, false, false, ((TNTPrimed) entity).getSource());
+        }
     }
 }
