@@ -9,7 +9,7 @@ options:
   map_name: 'Urban city'
   invurnebility: 20
   max_item_count: 5
-  min_item_count: 2
+  min_item_count: 3
   allowed_blocks:
     break:
       - glass_pane
@@ -29,11 +29,13 @@ options:
       - spruce_leaves
       - lily_of_the_valley
       - fire
+      - dragon_egg
     place:
       - lava_bucket
       - tnt
       - cobweb
       - fire
+      - dragon_egg
   rewards:
     kill: 65
     death: 3
@@ -55,61 +57,61 @@ files:
   world: '/world'
 scoreboard:
   waiting:
-    - '§b§lИгра %gamenumber%/8: §r%game%'
-    - '§b§lКарта: §r%map%'
+    - '§b§lИгра ${gamenumber}/8: §r${game}'
+    - '§b§lКарта: §r${map}'
     - '§c§lДо начала:'
-    - '§r%time%'
+    - '§r${time}'
     - ' '
-    - '§e§lТвои монеты: §r%coins%'
-    - '§a§lМонеты команды: §r%team_coins%'
+    - '§e§lТвои монеты: §r${coins}'
+    - '§a§lМонеты команды: §r${team_coins}'
   next_shrink:
-    - '§b§lИгра %gamenumber%/8: §r%game%'
-    - '§b§lКарта: §r%map%'
+    - '§b§lИгра ${gamenumber}/8: §r${game}'
+    - '§b§lКарта: §r${map}'
     - '§d§lСужение через:'
-    - '§r%time%'
+    - '§r${time}'
     - ' '
-    - '§a§lЖивых: §r%alive%'
-    - '§e§lУбийства: §r%kills%'
+    - '§a§lЖивых: §r${alive}'
+    - '§e§lУбийства: §r${kills}'
   shrinking:
-    - '§b§lИгра %gamenumber%/8: §r%game%'
-    - '§b§lКарта: §r%map%'
+    - '§b§lИгра ${gamenumber}/8: §r${game}'
+    - '§b§lКарта: §r${map}'
     - '§d§lБарьер сужается:'
-    - '§r%time%'
+    - '§rtime'
     - ' '
-    - '§a§lЖивых: §r%alive%'
-    - '§e§lУбийства: §r%kills%'
+    - '§a§lЖивых: §ralive'
+    - '§e§lУбийства: §rkills'
   starting:
-    - '§b§lИгра %gamenumber%/8: §r%game%'
-    - '§b§lКарта: §r%map%'
+    - '§b§lИгра ${gamenumber}/8: §r${game}'
+    - '§b§lКарта: §r${map}'
     - '§c§lСтарт:'
-    - '§r%time%'
+    - '§r${time}'
     - ' '
-    - '§e§lТвои монеты: §r%coins%'
-    - '§a§lМонеты команды: §r%team_coins%'
+    - '§e§lТвои монеты: §r${coins}'
+    - '§a§lМонеты команды: §r${team_coins}'
   playing:
-    - '§b§lИгра %gamenumber%/8: §r%game%'
-    - '§b§lКарта: §r%map%'
+    - '§b§lИгра ${gamenumber}/8: §r${game}'
+    - '§b§lКарта: §r${map}'
     - '§d§lСледующее сужение:'
-    - '%time%'
+    - '${time}'
     - ' '
-    - '§a§lЖивых: §r%alive%'
-    - '§e§lУбийства: §r%kills%'
+    - '§a§lЖивых: §r${alive}'
+    - '§e§lУбийства: §r${kills}'
   showdown:
-    - '§b§lИгра %gamenumber%/8: §r%game%'
-    - '§b§lКарта: §r%map%'
+    - '§b§lИгра ${gamenumber}/8: §r${game}'
+    - '§b§lКарта: §r${map}'
     - '§c§lСтолкновение:'
-    - '%time%'
+    - '${time}'
     - ' '
-    - '§a§lЖивых: §r%alive%'
-    - '§e§lУбийства: §r%kills%'
+    - '§a§lЖивых: §r${alive}'
+    - '§e§lУбийства: §r${kills}'
   ending:
-    - '§b§lИгра %gamenumber%/8: §r%game%'
-    - '§b§lКарта: §r%map%'
+    - '§b§lИгра ${gamenumber}/8: §r${game}'
+    - '§b§lКарта: §r${map}'
     - '§c§lКонец игры:'
-    - '%time%'
+    - '${time}'
     - ' '
-    - '§a§lЖивых: §r%alive%'
-    - '§e§lУбийства: §r%kills%'
+    - '§a§lЖивых: §r${alive}'
+    - '§e§lУбийства: §r${kills}'
 loot:
   '0':
     item:

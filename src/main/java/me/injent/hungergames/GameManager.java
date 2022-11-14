@@ -12,7 +12,6 @@ import me.injent.gamelib.util.TimerRunnable;
 import me.injent.gamelib.util.TitleBuilder;
 import me.injent.gamelib.util.WorldManager;
 import me.injent.hungergames.util.MapOptions;
-import me.injent.hungergames.util.WorldEditUtil;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.sound.Sound;
@@ -32,8 +31,6 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -41,7 +38,6 @@ import java.util.List;
 import java.util.UUID;
 
 public class GameManager implements Listener {
-
     private final HungerGames plugin;
     private GameLib gameLib;
 
@@ -93,6 +89,7 @@ public class GameManager implements Listener {
             worldBorder = world.getWorldBorder();
             starting();
         });
+        gameLib.getOptions().addGameNumber(1);
     }
 
     private void starting() {
@@ -123,13 +120,12 @@ public class GameManager implements Listener {
         Bukkit.getScheduler().runTask(plugin, new TimerRunnable(plugin, 10, 0, this::start, (s, m) -> {
             if (s == 0 && m == 0) return;
             Bukkit.getServer().showTitle(new TitleBuilder().title(Component.translatable("title.title.starting"))
-                .subtitle(Component.text("> " + s + " <"))
+                .subtitle(Component.translatable("title.subtitle.countdown"))
                 .fade(0, 30, 5)
                 .build()
             );
-
-            String time = ChatManager.formatTimer(s, m);
-            board.setLine(3, time);
+            board.setPlaceHolder("time", ChatManager.formatTimer(s, m));
+            board.updateAll();
 
             if (s <= 3 && s != 0) {
                 Bukkit.getServer().playSound(Sound.sound(Key.key("countdown"), Sound.Source.MASTER, 1, 1f));
@@ -143,7 +139,7 @@ public class GameManager implements Listener {
         // Remove barriers
         for (SpawnLoc spawnLoc : markers) {
             Location loc = spawnLoc.toLocation(world);
-            WorldEditUtil.fillBlocks(loc.clone().add(-2.0,0.0,-2.0), loc.clone().add(2.0,3.0,2.0), Material.AIR);
+            WorldManager.fillBlocks(loc.clone().add(-2.0,0.0,-2.0), loc.clone().add(2.0,3.0,2.0), Material.AIR);
         }
 
         for (Team team : DataUtil.getTeams().values()) {
@@ -194,8 +190,8 @@ public class GameManager implements Listener {
                 showdown();
             }
         }, (s, m) -> {
-            String time = ChatManager.formatTimer(s, m);
-            board.setLine(3, time);
+            board.setPlaceHolder("time", ChatManager.formatTimer(s, m));
+            board.updateAll();
         });
 
         TimerRunnable shrinkingTask = new TimerRunnable(plugin, 30, 0, () -> {
@@ -211,8 +207,8 @@ public class GameManager implements Listener {
             worldBorder.setSize(worldBorder.getSize() - options.getShrinkDistance(), options.getShrinkTime());
             Bukkit.getScheduler().runTask(plugin, shrinkingTime);
         }, (s, m) -> {
-            String time = ChatManager.formatTimer(s, m);
-            board.setLine(3, time);
+            board.setPlaceHolder("time", ChatManager.formatTimer(s, m));
+            board.updateAll();
         });
 
         Bukkit.getScheduler().runTask(plugin, shrinkingTask);
@@ -222,8 +218,8 @@ public class GameManager implements Listener {
         board.setLines(plugin.getConfig().getStringList("scoreboard.showdown"));
 
         Runnable showdownTask = new TimerRunnable(plugin, 0, 1, this::ending, (s, m) -> {
-            String time = ChatManager.formatTimer(s, m);
-            board.setLine(3, time);
+            board.setPlaceHolder("time", ChatManager.formatTimer(s, m));
+            board.updateAll();
         });
 
         Bukkit.getScheduler().runTask(plugin, showdownTask);
@@ -241,12 +237,16 @@ public class GameManager implements Listener {
             PlayerData.setSpectator(player);
             player.playSound(Sound.sound(Key.key("win"), Sound.Source.MASTER, 1f, 1f));
         }
+        for (UUID uuid : players) {
+            PlayerData playerData = DataUtil.getPlayerData(uuid);
+            playerData.addCoins(playerData.getLocalCoins());
+        }
         Bukkit.getScheduler().cancelTasks(plugin);
         board.setLines(plugin.getConfig().getStringList("scoreboard.ending"));
         ChatManager.showRoundLeaderboard(new ArrayList<>(DataUtil.getTeams().values()), players);
         Bukkit.getScheduler().runTask(plugin, new TimerRunnable(plugin, 0, 1, this::end, (s, m) -> {
-            String time = ChatManager.formatTimer(s, m);
-            board.setLine(3, time);
+            board.setPlaceHolder("time", ChatManager.formatTimer(s, m));
+            board.updateAll();
         }));
     }
 
@@ -262,10 +262,11 @@ public class GameManager implements Listener {
     }
 
     private void end() {
-        gameLib.getOptions().setGameState(GameState.END);
+        gameLib.getOptions().setGameState(GameState.LOBBY);
         for (Player player : Bukkit.getOnlinePlayers()) {
             player.teleport(Bukkit.getWorld("world").getSpawnLocation());
             PlayerData.setDefault(player);
+            DataUtil.getPlayerData(player).resetLocalCoins();
         }
         level.unload();
         markers = null;
@@ -313,12 +314,12 @@ public class GameManager implements Listener {
 
     @EventHandler
     private void onPlayerDeath(PlayerDeathEvent e) {
+        e.deathMessage(null);
         Player killer = e.getEntity().getKiller();
         Player dead = e.getPlayer();
         PlayerData deadData = DataUtil.getPlayerData(dead);
         Team deadTeam = deadData.getTeam();
         int aliveTeams = (int) DataUtil.getTeams().values().stream().filter(Team::isAlive).count();
-        deadData.setPlace(alive.size());
         alive.remove(dead.getUniqueId());
         deadTeam.getAliveUUID().remove(dead.getUniqueId());
         if (!deadData.getTeam().isAlive()) {
@@ -331,20 +332,13 @@ public class GameManager implements Listener {
             });
         }
 
-        e.setCancelled(true);
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             dead.spigot().respawn();
             PlayerData.setSpectator(dead);
-        }, 20);
+        }, 40);
 
         dead.sendMessage(e.deathMessage());
         dead.playSound(Sound.sound(Key.key("death"), Sound.Source.MASTER, 1f, 1f));
-        dead.showTitle(
-                new TitleBuilder()
-                    .title(Component.translatable("title.title.dead"))
-                    .fade(0, 60, 0)
-                    .build()
-        );
 
         Component deathMsg = Component.translatable("tellraw.death").args(Component.text(options.getDeathCoins())).append(e.deathMessage());
         Sound deathSoundGlobal = Sound.sound(Key.key("coins.bonus"), Sound.Source.MASTER, 1f, 1f);
